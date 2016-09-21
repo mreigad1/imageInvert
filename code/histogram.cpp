@@ -30,43 +30,98 @@ Mat *image = &original_image;
 
 //unsigned char* data;
 
-#define TOLERANCE 10
+#define TOLERANCE (50)
 
-void navigate(int* buf, int old_color, int new_color, int i, int j, int w, int h){
-	if (abs(old_color - new_color) < TOLERANCE){
-		return;
-	}
-	if (abs(buf[i * w + j] - old_color) < TOLERANCE){
-		buf[i * w + j] = new_color;
-		for (int ti = -1; ti <= 1; ti ++){
-			for (int tj = -1; tj <= 1; tj++){
-				if (!ti != !tj){ //exclusive logical or
-					int ni = i + ti;
-					int nj = j + tj;
-					if (ni >= 0 && ni < h && nj >= 0 && nj < w){
-						navigate(buf, old_color, new_color, ni, nj, w, h);
-					}
-				}
-			}
-		}
-	}
+typedef struct{
+    int i;
+    int j;
+} vec2;
+
+/*
+void foo(int* buf, Mat* oldData, int new_color, int p_i, int p_j, int w, int h){
+    vector<vec2> processingList;
+    processingList.push_back((vec2){p_i,p_j});
+
+    int old_color = oldData.data[i * w + j];
+    if (abs(old_color - new_color) < TOLERANCE){
+        return;
+    }
+
+    for(int count = 0; count < processingList.size(); count++){
+        int i = processingList[count].i;
+        int j = processingList[count].j;
+        int old_color = oldData.data[i * w + j];
+        if (abs(old_color - new_color) < TOLERANCE){
+            return;
+        }
+        if (abs(buf[i * w + j] - old_color) < TOLERANCE){
+            buf[i * w + j] = new_color;
+            for (int ti = -1; ti <= 1; ti ++){
+                for (int tj = -1; tj <= 1; tj++){
+                    if (!ti != !tj){ //exclusive logical or
+                        int ni = i + ti;
+                        int nj = j + tj;
+                        if (ni >= 0 && ni < h && nj >= 0 && nj < w){
+                            processingList.push_back((vec2){ni,nj});
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+*/
+
+void navigate(int* newData, Mat* oldData, int p_i, int p_j, int w, int h){
+    vector<vec2> processingList;
+    processingList.push_back((vec2){p_i,p_j});
+
+    //until tree exhausted
+    for (int k = 0; k < processingList.size(); k++){
+        //if this point's tree not yet assigned
+        int i = processingList[k].i;
+        int j = processingList[k].j;
+        if (newData[i * w + j] == -1){
+            //if this belongs to the tree then process it and it's neighbors
+            //if similar enough to root node
+            int this_color = oldData->data[i * w + j];
+            int orig_color = oldData->data[p_i * w + p_j];
+            if (abs(this_color - orig_color) < TOLERANCE){
+                newData[i * w + j] = oldData->data[(p_i * w + p_j)];
+
+                for (int ii = -1; ii <= 1; ii++){
+                    for (int jj = -1; jj <= 1; jj++){
+                        if (!ii != !jj){
+                            int n_i = ii + i;
+                            int n_j = jj + j;
+                            if (n_i >= 0 && n_j >= 0 && n_i < h && n_j < w){
+                                processingList.push_back((vec2){n_i,n_j});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 void doClusters(){
+    image = &original_image;
+
     int x = image->step;
     int y = image->rows;
-    unsigned char* data = original_image.data;
     int* clusterNums = new int[x * y];
 
     for (int i = 0; i < y; i++){
         for (int j = 0; j < x; j++){
-            clusterNums[(i * x) + j] = data[(i * x) + j];
+            //clusterNums[(i * x) + j] = original_image.data[(i * x) + j];
+            clusterNums[(i * x) + j] = -1;
         }
     }
 
     for (int i = 0; i < y; i++){
         for (int j = 0; j < x; j++){
-            navigate(clusterNums, clusterNums[i * x + j], (i * x + j), i, j, x, y);
+            navigate(clusterNums, image, i, j, x, y);
         }
     }
 
@@ -198,7 +253,7 @@ int main(int argc, char **argv) {
                 image = &eqcv_image;
             break;
             case 't':
-            	doClusters();
+                doClusters();
             break;
             default:
             break;
