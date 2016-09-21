@@ -1,11 +1,12 @@
-LIB_PATHS=-L/usr/local/Cellar/opencv/2.4.12/lib
-LIBS=-lopencv_highgui -lopencv_core
-all: skeleton
+VERSION=2.4.13_3
+LIB_PATHS=-L/usr/local/Cellar/opencv/${VERSION}/lib
+LIBS=-lopencv_highgui -lopencv_core -lopencv_imgproc
+all: histogram
 
-skeleton: skeleton.cpp
-	g++ skeleton.cpp ${LIB_PATHS} ${LIBS} -o skeleton
+histogram: histogram.cpp
+	g++ histogram.cpp ${LIB_PATHS} ${LIBS} -o histogram
 
 .PHONY:clean
 
 clean:
-	rm skeleton
+	rm histogram
