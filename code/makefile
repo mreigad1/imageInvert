@@ -1,12 +1,12 @@
 VERSION=2.4.13_3
 LIB_PATHS=-L/usr/local/Cellar/opencv/${VERSION}/lib
 LIBS=-lopencv_highgui -lopencv_core -lopencv_imgproc
-all: histogram
+all: sharpen
 
-histogram: histogram.cpp
-	g++ histogram.cpp ${LIB_PATHS} ${LIBS} -o histogram
+sharpen: sharpen.cpp pixel.cpp
+	g++ sharpen.cpp pixel.cpp ${LIB_PATHS} ${LIBS} -o sharpen
 
 .PHONY:clean
 
 clean:
-	rm histogram
+	rm sharpen
