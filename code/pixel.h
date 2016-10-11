@@ -16,7 +16,7 @@ class pixel {
 		pixel_primitive toPixelPrimitive();
 	private:
 		static const int PIX_ARR_SIZE = 3;
-		unsigned int rgb[PIX_ARR_SIZE];
+		int rgb[PIX_ARR_SIZE];
 };
 
 //pixel primitive is a type with size and alignment matching native pixel
@@ -50,7 +50,7 @@ class imageGrid {
 //mask stores data for square masks filters
 class mask {
 	public:
-		mask(unsigned int width, unsigned int listLength, double* initList);
+		mask(unsigned int width, unsigned int listLength, double* initList, double coefficient = 1.0);
 		friend pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
 		~mask();
 	private:

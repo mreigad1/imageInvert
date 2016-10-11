@@ -35,13 +35,17 @@ int main(int argc, char **argv) {
     //Create the display window
     namedWindow("Unix Sample Skeleton");
 
-    double blur_list[] = { 1 / 16.0, 2 / 16.0, 1 / 16.0,
-                           2 / 16.0, 4 / 16.0, 2 / 16.0,
-                           1 / 16.0, 2 / 16.0, 1 / 16.0 };
-    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list);
+    double blur_list[] = {  0,  1,  0,
+                            1, -3,  1,
+                            0,  1,  0 };
+
+    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list, 1 / 1.0);
 
     imageGrid img(modified_image.rows, modified_image.step / 3, &modified_image.data[0]);
-    img.multiply(blur);
+    for (int i = 0; i < 1; i++) {
+        img.multiply(blur);
+    }
+
     img.commitImageGrid(&modified_image.data[0]);
 
     //Display loop
