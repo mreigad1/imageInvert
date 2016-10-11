@@ -2,10 +2,10 @@
 
 #include "pixel.h"
 
-enum RGB{
-	RGB_R = 0,
+enum BGR{
+	RGB_B = 0,
 	RGB_G = 1,
-	RGB_B = 2
+	RGB_R = 2
 };
 
 pixel::pixel(unsigned char R, unsigned char G, unsigned char B ) {
@@ -48,6 +48,14 @@ pixel pixel::operator*(const double& m){
 	return pixel((unsigned char)R, (unsigned char)G, (unsigned char)B);
 }
 
+pixel_primitive pixel::toPixelPrimitive() {
+	pixel_primitive p;
+	p.rgb[RGB_B] = rgb[RGB_B];
+	p.rgb[RGB_G] = rgb[RGB_G];
+	p.rgb[RGB_R] = rgb[RGB_R];
+	return p;
+}
+
 mask::mask(unsigned int width, unsigned int listLength, double* initList) {
 	assert((width * width) == listLength);
 	w = width;
@@ -72,7 +80,8 @@ pixel pixel_primitive::toPixel() {
 	return pixel(rgb[RGB_R], rgb[RGB_G], rgb[RGB_B]);
 }
 
-image::image(unsigned height, unsigned width, pixel_primitive* old) {
+imageGrid::imageGrid(unsigned height, unsigned width, unsigned char* old_data) {
+	pixel_primitive* old = (pixel_primitive*) old_data;
 	h = height;
 	w = width;
 	img = new pixel*[height];
@@ -84,14 +93,20 @@ image::image(unsigned height, unsigned width, pixel_primitive* old) {
 	}
 }
 
-image::~image(){
+imageGrid::imageGrid() {
+	pixel_primitive* old = NULL;
+	h = 0;
+	w = 0;
+}
+
+imageGrid::~imageGrid(){
 	for (unsigned int i = 0; i < h; i++) {
 		delete[] img[i];
 	}
 	delete[] img;
 }
 
-image& image::operator=(const image& other) {
+imageGrid& imageGrid::operator=(const imageGrid& other) {
 	if (NULL != img){
 		for (unsigned int i = 0; i < h; i++) {
 			delete[] img[i];
@@ -110,8 +125,8 @@ image& image::operator=(const image& other) {
 	return *this;
 }
 
-void image::multiply(mask& _mask) {
-	image tmp = *this;
+void imageGrid::multiply(mask& _mask) {
+	imageGrid buf = *this;
 	//iterate over all pixels
 	for (unsigned int i = 0; i < h; i++) {
 		for (unsigned int j = 0; j < w; j++) {
@@ -120,7 +135,7 @@ void image::multiply(mask& _mask) {
 	}
 }
 
-pixel image::multiplyPixel(unsigned int y, unsigned int x, mask& _mask) {
+pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask) {
 	pixel retVal(0, 0, 0);
 	int off = _mask.w / 2;
 	//iterate over all valid pixels in neighborhood
@@ -131,13 +146,21 @@ pixel image::multiplyPixel(unsigned int y, unsigned int x, mask& _mask) {
 			if (x_prime >= 0 && x_prime < w && y_prime >= 0 && y_prime < h) {
 				retVal = retVal + (img[y_prime][x_prime] * _mask.maskVals[y_off + off][x_off + off]);
 			} else {
-				retVal = retVal + img[y][x];
+				retVal = retVal + (img[y][x] * _mask.maskVals[y_off + off][x_off + off]);
 			}
 		}
 	}
 	return retVal;
 }
 
+void imageGrid::commitImageGrid(unsigned char * old_data) {
+	pixel_primitive* old = (pixel_primitive*) old_data;
+	for (unsigned int i = 0; i < h; i++) {
+		for (unsigned int j = 0; j < w; j++) {
+			(*old++) = img[i][j].toPixelPrimitive();
+		}
+	}
+}
 
 
 
