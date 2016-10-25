@@ -21,13 +21,16 @@ int main(int argc, char **argv) {
     //Done for display purposes only
     //Use CV_LOAD_IMAGE_GRAYSCALE for greyscale images
     Mat original_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
-    Mat modified_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+    Mat unsharp_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+    Mat sobel_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+    Mat log9_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+    Mat log11_image = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 
     //Create a pointer so that we can quickly toggle between which image is being displayed
     Mat *image = &original_image;
 
     //Check that the images loaded
-    if(!original_image.data || !modified_image.data) {
+    if(!original_image.data || !unsharp_image.data) {
         cout << "ERROR: Could not load image data." << endl;
         return -1;
     }
@@ -35,14 +38,30 @@ int main(int argc, char **argv) {
     //Create the display window
     namedWindow("Unix Sample Skeleton");
 
-    double blur_list[] = { 1 / 16.0, 2 / 16.0, 1 / 16.0,
-                           2 / 16.0, 4 / 16.0, 2 / 16.0,
-                           1 / 16.0, 2 / 16.0, 1 / 16.0 };
-    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list);
+    double blur_list[] = {  0, -1,  0,
+                           -1,  5, -1,
+                            0, -1,  0  };
 
-    imageGrid img(modified_image.rows, modified_image.step / 3, &modified_image.data[0]);
-    img.multiply(blur);
-    img.commitImageGrid(&modified_image.data[0]);
+    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list, 1 / 1.0);
+
+    imageGrid unsharp_img(unsharp_image.rows, unsharp_image.step / 3, &unsharp_image.data[0]);
+    unsharp_img.multiply(blur);
+    unsharp_img.commitImageGrid(&unsharp_image.data[0]);
+
+    imageGrid sobel_img(sobel_image.rows, sobel_image.step / 3, &sobel_image.data[0]);
+    sobel_img.sobel();
+    sobel_img.commitImageGrid(&sobel_image.data[0]);
+
+	imageGrid unHSI_img(log9_image.rows, log9_image.step / 3, &log9_image.data[0]);
+    unHSI_img.RGB_toHSI();
+    unHSI_img.HSI_toRGB();
+    unHSI_img.commitImageGrid(&log9_image.data[0]);
+
+	imageGrid HSI_img(log11_image.rows, log11_image.step / 3, &log11_image.data[0]);
+    HSI_img.RGB_toHSI();
+    HSI_img.commitImageGrid(&log11_image.data[0]);
+
+    unsigned state = 0;
 
     //Display loop
     bool loop = true;
@@ -55,9 +74,38 @@ int main(int argc, char **argv) {
             break;
             case 32:  //Swap image pointer if space is pressed
                 if(image == &original_image) {
-                  image = &modified_image;
+                  image = &unsharp_image;
                 } else {
                   image = &original_image;
+                }
+                switch(state % 5) {
+                	case 0:
+                		image = &original_image;
+                		state++;
+                		cout << "Original image.\n";
+                	break;
+                	case 1:
+                		image = &unsharp_image;
+                		state++;
+                		cout << "Unsharp image.\n";
+                	break;
+                	case 2:
+                		image = &sobel_image;
+                		state++;
+                		cout << "Sobel image.\n";
+                	break;
+                	case 3:
+                		image = &log9_image;
+                		state++;
+                		cout << "un-HSI image.\n";
+                	break;
+                	case 4:
+                		image = &log11_image;
+                		state++;
+                		cout << "HSI image.\n";
+                	break;
+                	default:
+                	break;
                 }
             break;
             default:

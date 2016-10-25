@@ -3,20 +3,26 @@ class pixel_primitive;
 class imageGrid;
 class mask;
 
+typedef double pixelPrecision;
+
 //pixel stores high precision pixel data during
 //mathematical operations to avoid overflows
 class pixel {
 	public:
 		pixel();
-		pixel(unsigned char R, unsigned char G, unsigned char B );
+		pixel(int R, int G, int B);
 		pixel operator+(const pixel& neighbor);
 		pixel operator-(const pixel& neighbor);
 		pixel operator/(const double& denom);
 		pixel operator*(const double& m);
+		pixel operator*(const pixel& m);
+		pixel root();
 		pixel_primitive toPixelPrimitive();
+		pixel RGB_toHSI();
+		pixel HSI_toRGB();
 	private:
 		static const int PIX_ARR_SIZE = 3;
-		unsigned int rgb[PIX_ARR_SIZE];
+		pixelPrecision rgb[PIX_ARR_SIZE];
 };
 
 //pixel primitive is a type with size and alignment matching native pixel
@@ -39,7 +45,10 @@ class imageGrid {
 		~imageGrid();
 		imageGrid& operator=(const imageGrid& other);
 		void multiply(mask& _mask);
+		void sobel();
 		pixel multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
+		void RGB_toHSI();
+		void HSI_toRGB();
 		void commitImageGrid(unsigned char* old_data);
 	private:
 		unsigned int h;
@@ -50,9 +59,13 @@ class imageGrid {
 //mask stores data for square masks filters
 class mask {
 	public:
-		mask(unsigned int width, unsigned int listLength, double* initList);
+		mask();
+		mask(unsigned int width, unsigned int listLength, double* initList, double coefficient = 1.0);
 		friend pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
+		static double LOG(double x, double y, double sigma);
+		static mask makeLOG(int width, double sigma);
 		~mask();
+		mask& operator=(const mask& other);
 	private:
 		unsigned int w;
 		double** maskVals;
