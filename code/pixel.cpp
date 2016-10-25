@@ -147,11 +147,14 @@ pixel_primitive pixel::toPixelPrimitive() {
 	return p;
 }
 
+<<<<<<< HEAD
 mask::mask() {
 	w = 0;
 	maskVals = NULL;
 }
 
+=======
+>>>>>>> 8818b514d0746e7726f11d4bf15133913e615f5d
 mask::mask(unsigned int width, unsigned int listLength, double* initList, double coefficient) {
 	assert((width * width) == listLength);
 	w = width;
@@ -242,7 +245,7 @@ mask mask::makeLOG(int width, double sigma) {
 }
 
 pixel pixel_primitive::toPixel() {
-	return pixel(rgb[RGB_R], rgb[RGB_G], rgb[RGB_B]);
+	return pixel(MAX(rgb[RGB_R], 0), MAX(rgb[RGB_G], 0), MAX(rgb[RGB_B], 0));
 }
 
 imageGrid::imageGrid(unsigned height, unsigned width, unsigned char* old_data) {
@@ -349,6 +352,7 @@ void imageGrid::sobel() {
 			img[i][j] = (gx.img[i][j] * gx.img[i][j] + gy.img[i][j] * gy.img[i][j]).root();
 		}
 	}
+	*this = buf;
 }
 
 pixel imageGrid::multiplyPixel(unsigned int y, unsigned int x, mask& _mask) {
