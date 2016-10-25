@@ -12,7 +12,8 @@
 #define MAX_COLOR (255.0)
 #define CAP(X) RANGE(0, X, MAX_COLOR)
 #define NUM_COLORS (3.0)
-#define PI (3.14159265359)
+#define PI (3.141592653589793238462643383279502)
+#define tPI (2 * PI)
 #define EPS (2.71828182846)
 
 enum BGR {
@@ -39,14 +40,23 @@ pixel::pixel() {
 	rgb[RGB_B] = 0;
 }
 
+inline pixelPrecision inBounds(pixelPrecision p) {
+	while (p < 0)    { p += tPI; }
+	while (p >= tPI) { p -= tPI; }
+	if (p < 0) { p += tPI; }
+	//assert(p >= 0);
+	//assert(p < tPI);
+	return p;
+}
+
 pixel pixel::RGB_toHSI() {
 	pixel ret(0, 0, 0);
 	pixelPrecision R = rgb[RGB_R];
 	pixelPrecision G = rgb[RGB_G];
 	pixelPrecision B = rgb[RGB_B];
 	pixelPrecision M = MIN(MIN(R, G), B);
-	pixelPrecision T = atan((R - (G + B) / 2.0) / sqrt(R*R + G*G + B*B - R*G - R*B - G*B));
-	ret.rgb[HSI_H] = ((G >= B) ? (T) : (2 * PI - T));
+	pixelPrecision T = MAX_COLOR * inBounds( acos((R - ((G + B) / 2.0)) / sqrt(R*R + G*G + B*B - R*G - R*B - G*B)) );
+	ret.rgb[HSI_H] = ((G >= B) ? (T) : (tPI - T));
 	ret.rgb[HSI_I] = (R + G + B) / NUM_COLORS;
 	ret.rgb[HSI_S] = ((ret.rgb[HSI_I] > 0) ? (MAX_COLOR - (M / ret.rgb[HSI_I])) : (0));
 	return ret;
@@ -54,16 +64,10 @@ pixel pixel::RGB_toHSI() {
 
 pixel pixel::HSI_toRGB() {
 	pixel ret(0,0,0);
-	pixelPrecision H = rgb[HSI_H] / MAX_COLOR;
+	pixelPrecision H = inBounds(rgb[HSI_H] / MAX_COLOR);
 	pixelPrecision S = rgb[HSI_S];
 	pixelPrecision I = rgb[HSI_I];
-	pixelPrecision tPI = 2 * PI;
 	pixelPrecision R, G, B;
-	while (H > tPI) { H -= tPI; }
-	while (H < 0) { H += tPI; }
-	if (H > tPI) { H -= tPI; }
-	assert(H <= tPI);
-	assert(H >= 0);
 	pixelPrecision tmp;
 	if (H == 0) {
 		R = (I + 2 * S * I);
@@ -93,8 +97,8 @@ pixel pixel::HSI_toRGB() {
 		G = I - I * S;
 		B = I + I * S * tmp;
 	} else {
-		std::cout << "ERROR!\n";
-		exit(0);
+		//std::cout << "ERROR!\n";
+		//exit(0);
 	}
 	return ret;
 }
