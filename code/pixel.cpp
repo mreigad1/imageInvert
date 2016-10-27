@@ -16,6 +16,13 @@
 #define tPI (2 * PI)
 #define EPS (2.71828182846)
 
+#define ASSERT(M)	{																			\
+	if (false == (M)) {																			\
+		std::cout << "Error at: " << #M << " at " << __LINE__ << ":" << __FILE__ << std::endl;	\
+		exit(0);																				\
+	}																							\
+}																								\
+
 enum BGR {
 	RGB_B = 0,
 	RGB_G = 1,
@@ -40,31 +47,67 @@ pixel::pixel() {
 	rgb[RGB_B] = 0;
 }
 
-inline pixelPrecision inBounds(pixelPrecision p) {
+pixelPrecision pixel::getI() {
+	pixelPrecision ret = 0;
+	for (int i = 0; i < PIX_ARR_SIZE; i++) {
+		ret += (rgb[i] / PIX_ARR_SIZE);
+	}
+	return ret;
+}
+
+void pixel::setI(pixelPrecision I) {
+	for (int i = 0; i < PIX_ARR_SIZE; i++) {
+		rgb[i] = I;
+	}
+}
+
+pixelPrecision inBounds(pixelPrecision p) {
 	while (p < 0)    { p += tPI; }
 	while (p >= tPI) { p -= tPI; }
 	if (p < 0) { p += tPI; }
-	//assert(p >= 0);
-	//assert(p < tPI);
+	if (isnan(p)) { p = 0; }
+	ASSERT(p >= 0);
+	ASSERT(p < tPI);
 	return p;
+}
+
+pixel pixel::RGB_toI() {
+	pixel ret = this->RGB_toHSI();
+	ret.rgb[HSI_H] = ret.rgb[HSI_I];
+	ret.rgb[HSI_S] = ret.rgb[HSI_I];
+	return ret;
 }
 
 pixel pixel::RGB_toHSI() {
 	pixel ret(0, 0, 0);
-	pixelPrecision R = rgb[RGB_R];
-	pixelPrecision G = rgb[RGB_G];
 	pixelPrecision B = rgb[RGB_B];
-	pixelPrecision M = MIN(MIN(R, G), B);
-	pixelPrecision T = MAX_COLOR * inBounds( acos((R - ((G + B) / 2.0)) / sqrt(R*R + G*G + B*B - R*G - R*B - G*B)) );
-	ret.rgb[HSI_H] = ((G >= B) ? (T) : (tPI - T));
-	ret.rgb[HSI_I] = (R + G + B) / NUM_COLORS;
-	ret.rgb[HSI_S] = ((ret.rgb[HSI_I] > 0) ? (MAX_COLOR - (M / ret.rgb[HSI_I])) : (0));
+    pixelPrecision G = rgb[RGB_G];
+    pixelPrecision R = rgb[RGB_R];
+    pixelPrecision H, S, I, a;
+
+    a = MIN(R, MIN(G, B));
+    I = ( R + G + B) / 3.0;
+    S = 1 - 3.0/(R+G+B)*a;
+    if (S == 0.0) {
+        H = 0.0;
+    } else {
+        if (B <= G){
+            H = acos((((R-G)+(R-B))/2.0)/(sqrt((R-G)*(R-G) + (R-B)*(G-B))));
+        } else {
+            if (B > G)
+            H = 2*PI - acos((((R-G)+(R-B))/2.0)/(sqrt((R-G)*(R-G) + (R-B)*(G-B))));
+        }
+    }
+
+    ret.rgb[HSI_H] = H;
+    ret.rgb[HSI_S] = S;
+    ret.rgb[HSI_I] = I;
 	return ret;
 }
 
 pixel pixel::HSI_toRGB() {
 	pixel ret(0,0,0);
-	pixelPrecision H = inBounds(rgb[HSI_H] / MAX_COLOR);
+	pixelPrecision H = inBounds(rgb[HSI_H]);
 	pixelPrecision S = rgb[HSI_S];
 	pixelPrecision I = rgb[HSI_I];
 	pixelPrecision R, G, B;
@@ -100,6 +143,9 @@ pixel pixel::HSI_toRGB() {
 		//std::cout << "ERROR!\n";
 		//exit(0);
 	}
+	ret.rgb[RGB_R] = R;
+	ret.rgb[RGB_G] = G;
+	ret.rgb[RGB_B] = B;
 	return ret;
 }
 
@@ -279,6 +325,105 @@ imageGrid::~imageGrid(){
 	}
 }
 
+void imageGrid::RGB_toI() {
+	for (unsigned int i = 0; i < h; i++){
+		for (unsigned int j = 0; j < w; j++) {
+			img[i][j] = img[i][j].RGB_toI();
+		}
+	}
+}
+
+unsigned round_up(unsigned val, unsigned unit) {
+	return ((val + unit - 1) / unit) * unit;
+}
+
+eight_block ComputeIDct(const pixelPrecision in[block_size][block_size]/*, double& out[block_size][block_size]*/) {
+	pixelPrecision out[block_size][block_size];
+
+	for (unsigned i = 0; i < block_size; i++) {
+		for (unsigned j = 0; j < block_size; j++) {
+			pixelPrecision& s = out[i][j];
+			s = 0;
+
+			for (unsigned u = 0; u < block_size; u++) {
+				for (unsigned v = 0; v < block_size; v++) {
+          			s += in[u][v] * cos((2 * i + 1) * u * M_PI / 16) * cos((2 * j + 1) * v * M_PI / 16) *
+          				((u == 0) ? 1 / sqrt(2) : 1.) * ((v == 0) ? 1 / sqrt(2) : 1.);
+				}
+			}
+
+      		s /= 4;
+      	}
+    }
+    eight_block ret = *((eight_block*)&out);
+    return ret;
+}
+
+eight_block ComputeDct(const pixelPrecision in[block_size][block_size]/*, double& out[block_size][block_size]*/) {
+	pixelPrecision out[block_size][block_size];
+
+	for (unsigned i = 0; i < block_size; i++) {
+		for (unsigned j = 0; j < block_size; j++) {
+			pixelPrecision& s = out[i][j];
+			s = 0;
+
+			for (unsigned u = 0; u < block_size; u++) {
+				for (unsigned v = 0; v < block_size; v++) {
+					s += in[u][v] * cos((2 * u + 1) * i * M_PI / 16) * cos((2 * v + 1) *
+						j * M_PI / 16) * ((i == 0) ? 1 / sqrt(2) : 1) * ((j == 0) ? 1 / sqrt(2) : 1);
+				}
+			}
+
+      		s /= 4;
+      	}
+    }
+    eight_block ret = *((eight_block*)&out);
+    return ret;
+}
+
+void imageGrid::DCT() {
+	unsigned h_prime = round_up(h, block_size);
+	const unsigned h_blocks = h_prime / block_size;
+	unsigned w_prime = round_up(w, block_size);
+	const unsigned w_blocks = w_prime / block_size;
+
+	eight_block block_grid[h_blocks][w_blocks];
+
+	//setup all block_grids
+	for (unsigned i = 0; i < h_blocks; i++) {
+		for (unsigned j = 0; j < w_blocks; j++) {
+			for (unsigned y = 0; y < block_size; y++) {
+				for (unsigned x = 0; x < block_size; x++) {
+					block_grid[i][j].block_arr[y][x] = img[i * block_size + y][j * block_size + x].getI();
+				}
+			}
+		}
+	}
+
+	//process each block_grid
+	for (unsigned i = 0; i < h_blocks; i++) {
+		for (unsigned j = 0; j < w_blocks; j++) {
+			block_grid[i][j] = ComputeDct(block_grid[i][j].block_arr);
+			if (i % 2 != j % 2) {
+				//block_grid[i][j] = ComputeIDct(block_grid[i][j].block_arr);
+			}
+		}
+	}
+
+	//move all block_grids back into imageGrid
+	for (unsigned i = 0; i < h_blocks; i++) {
+		for (unsigned j = 0; j < w_blocks; j++) {
+			for (unsigned y = 0; y < block_size; y++) {
+				for (unsigned x = 0; x < block_size; x++) {
+					if ( i * block_size + y < h && j * block_size + x < w) {
+						img[i * block_size + y][j * block_size + x].setI(block_grid[i][j].block_arr[y][x]);
+					}
+				}
+			}
+		}
+	}
+}
+
 void imageGrid::RGB_toHSI() {
 	for (unsigned int i = 0; i < h; i++){
 		for (unsigned int j = 0; j < w; j++) {
@@ -286,6 +431,7 @@ void imageGrid::RGB_toHSI() {
 		}
 	}
 }
+
 void imageGrid::HSI_toRGB() {
 	for (unsigned int i = 0; i < h; i++){
 		for (unsigned int j = 0; j < w; j++) {

@@ -38,11 +38,11 @@ int main(int argc, char **argv) {
     //Create the display window
     namedWindow("Unix Sample Skeleton");
 
-    double blur_list[] = {  0, -1,  0,
-                           -1,  5, -1,
-                            0, -1,  0  };
+    double blur_list[] = {  0, 1,  0,
+                            1, 4,  1,
+                            0, 1,  0  };
 
-    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list, 1 / 1.0);
+    mask blur(3, sizeof(blur_list) / sizeof(double), blur_list, 1 / 8.0);
 
     imageGrid unsharp_img(unsharp_image.rows, unsharp_image.step / 3, &unsharp_image.data[0]);
     unsharp_img.multiply(blur);
@@ -53,12 +53,15 @@ int main(int argc, char **argv) {
     sobel_img.commitImageGrid(&sobel_image.data[0]);
 
 	imageGrid unHSI_img(log9_image.rows, log9_image.step / 3, &log9_image.data[0]);
-    unHSI_img.RGB_toHSI();
-    unHSI_img.HSI_toRGB();
+    unHSI_img.DCT();
+    //unHSI_img.HSI_toRGB();
+    unHSI_img.multiply(blur);
     unHSI_img.commitImageGrid(&log9_image.data[0]);
 
 	imageGrid HSI_img(log11_image.rows, log11_image.step / 3, &log11_image.data[0]);
     HSI_img.RGB_toHSI();
+    //HSI_img.HSI_toRGB();
+    //HSI_img.multiply(blur);
     HSI_img.commitImageGrid(&log11_image.data[0]);
 
     unsigned state = 0;
@@ -86,7 +89,7 @@ int main(int argc, char **argv) {
                 	break;
                 	case 1:
                 		image = &unsharp_image;
-                		state++;
+                		state+=2;
                 		cout << "Unsharp image.\n";
                 	break;
                 	case 2:
@@ -96,7 +99,7 @@ int main(int argc, char **argv) {
                 	break;
                 	case 3:
                 		image = &log9_image;
-                		state++;
+                		state+=2;
                 		cout << "un-HSI image.\n";
                 	break;
                 	case 4:

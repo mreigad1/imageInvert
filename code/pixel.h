@@ -18,8 +18,11 @@ class pixel {
 		pixel operator*(const pixel& m);
 		pixel root();
 		pixel_primitive toPixelPrimitive();
+		pixel RGB_toI();
 		pixel RGB_toHSI();
 		pixel HSI_toRGB();
+		pixelPrecision getI();
+		void setI(pixelPrecision I);
 	private:
 		static const int PIX_ARR_SIZE = 3;
 		pixelPrecision rgb[PIX_ARR_SIZE];
@@ -47,6 +50,8 @@ class imageGrid {
 		void multiply(mask& _mask);
 		void sobel();
 		pixel multiplyPixel(unsigned int y, unsigned int x, mask& _mask);
+		void DCT();
+		void RGB_toI();
 		void RGB_toHSI();
 		void HSI_toRGB();
 		void commitImageGrid(unsigned char* old_data);
@@ -71,3 +76,7 @@ class mask {
 		double** maskVals;
 };
 
+const unsigned block_size = 8;
+struct eight_block {
+	double block_arr[block_size][block_size];
+};
